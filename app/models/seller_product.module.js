@@ -17,9 +17,11 @@ module.exports = (sequelize, Sequelize) => {
       },
       availability: {
         type: Sequelize.BOOLEAN,
+        default: false,
       },
       price: {
         type: Sequelize.FLOAT,
+        default: 0,
       },
       product_name: {
         type: Sequelize.STRING,

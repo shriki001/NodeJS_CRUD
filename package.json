@@ -10,7 +10,8 @@
     "express": "4.18.2",
     "helmet": "7.0.0",
     "sequelize": "6.31.1",
-    "sqlite3": "5.1.6"
+    "sqlite3": "5.1.6",
+    "express-http-status":"1.1.0"
   },
   "devDependencies": {
     "nodemon": "2.0.22"
