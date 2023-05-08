@@ -3,21 +3,25 @@ const SellerProductController = require("../controllers/seller_products.controll
 const { requireASINLocale } = require("../middlewares/ASINLocale.middleware");
 
 SellerProductRoute.post("/create", SellerProductController.create);
+
 SellerProductRoute.get(
   "/read",
   requireASINLocale,
   SellerProductController.read
 );
+
 SellerProductRoute.put(
   "/update",
   requireASINLocale,
   SellerProductController.update
 );
+
 SellerProductRoute.delete(
   "/delete",
   requireASINLocale,
   SellerProductController.delete
 );
+
 SellerProductRoute.get(
   "/readBySeller/:seller_name",
   SellerProductController.readBySeller

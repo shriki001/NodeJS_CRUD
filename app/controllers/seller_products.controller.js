@@ -24,8 +24,10 @@ module.exports.read = async (req, res) => {
     offset: _page,
     limit: LIMIT,
   });
+  if (!rows.length) return res.sendStatus(StatusCodes.NOT_FOUND);
   return res.send({ page: _page, data: rows, limit: LIMIT, total: count });
 };
+
 module.exports.update = async (req, res) => {
   const { ASIN, Locale } = req.query;
   const findQuery = { where: { [Op.and]: [{ ASIN, Locale }] } };
@@ -35,6 +37,7 @@ module.exports.update = async (req, res) => {
       res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(err.message)
     );
 };
+
 module.exports.delete = async (req, res) => {
   const { ASIN, Locale } = req.query;
   const query = { where: { [Op.and]: [{ ASIN, Locale }] } };
@@ -44,6 +47,7 @@ module.exports.delete = async (req, res) => {
       res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(err.message)
     );
 };
+
 module.exports.readBySeller = async (req, res) => {
   const { seller_name } = req.params;
   const _page = parseInt(req.query.page || "0");
@@ -57,39 +61,27 @@ module.exports.readBySeller = async (req, res) => {
   });
   return res.send({ page: _page, data: rows, limit: LIMIT, total: count });
 };
-module.exports.getAnalysis = async (req, res) => {
-  const [availableProducts, unavailableProducts] = await Promise.all([
-    SellerProduct.findAll({
-      attributes: [
-        "seller_name",
-        "Locale",
-        [fn("COUNT", col("availability")), "available_products"],
-      ],
-      where: { availability: true },
-      group: ["seller_name", "locale"],
-      raw: true,
-    }),
-    SellerProduct.findAll({
-      attributes: [
-        "seller_name",
-        "Locale",
-        [fn("COUNT", col("availability")), "unavailable_products"],
-      ],
-      where: { availability: false },
-      group: ["seller_name", "locale"],
-      raw: true,
-    }),
-  ]);
 
-  const avgPricePerSellerLocale = await SellerProduct.findAll({
-    attributes: [
-      "seller_name",
-      "Locale",
-      [fn("AVG", col("price")), "average_price"],
-    ],
-    group: ["seller_name", "Locale"],
+function _findData(_fn, _col, outRowName, where) {
+  return SellerProduct.findAll({
+    attributes: ["seller_name", "Locale", [fn(_fn, col(_col)), outRowName]],
+    where,
+    group: ["seller_name", "locale"],
     raw: true,
   });
+}
+
+module.exports.getAnalysis = async (req, res) => {
+  const [availableProducts, unavailableProducts, avgPricePerSellerLocale] =
+    await Promise.all([
+      _findData("COUNT", "availability", "available_products", {
+        availability: true,
+      }),
+      _findData("COUNT", "availability", "unavailable_products", {
+        availability: false,
+      }),
+      _findData("AVG", "price", "average_price"),
+    ]);
   const returnData = [];
 
   for (const sellerLocale of avgPricePerSellerLocale) {
