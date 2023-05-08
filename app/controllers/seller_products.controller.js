@@ -120,7 +120,6 @@ module.exports.csvHandle = async (req, res) => {
       })
       .on("end", () => {
         SellerProduct.bulkCreate(results, {
-          fields: ["asin", "locale"],
           updateOnDuplicate: [
             "seller_name",
             "availability",
@@ -128,7 +127,7 @@ module.exports.csvHandle = async (req, res) => {
             "product_name",
             "product_link",
           ],
-        }).then()
+        })
         .catch(err=>console.error(err));
       });
   } catch (error) {
