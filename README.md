@@ -10,18 +10,18 @@ the database will automatically create (sqlite3)
 *CREATE*
 POST {{url}}/api/v1/create
 body: {
-    "ASIN":"scads2",
-    "Locale":"US",
+    "asin":"scads2",
+    "locale":"US",
     "seller_name":"test2",
     "price":6,
     "availability": true
 }
 
 *READ*
-GET {{url}}/api/v1/read?ASIN=scads2&Locale=US
+GET {{url}}/api/v1/read?asin=scads2&locale=US
 
 *UPDATE*
-PUT {{url}}/api/v1/update?ASIN=scads2&Locale=US
+PUT {{url}}/api/v1/update?asin=scads2&locale=US
 body: {
     "seller_name":"test2",
     "price":44,
@@ -29,7 +29,7 @@ body: {
 }
 
 *DELETE*
-DELETE {{url}}/api/v1/delete?ASIN=scads2&Locale=US
+DELETE {{url}}/api/v1/delete?asin=scads2&locale=US
 
 *READ_BY_SELLER*
 GET {{url}}/api/v1/readBySeller/test2
