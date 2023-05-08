@@ -2,18 +2,17 @@ module.exports = (sequelize, Sequelize) => {
   const SellerProduct = sequelize.define(
     "seller_product",
     {
-      ASIN: {
+      asin: {
         type: Sequelize.STRING,
         primaryKey: true,
         allowNull: false,
       },
-      Locale: {
+      locale: {
         type: Sequelize.STRING,
         allowNull: false,
       },
       seller_name: {
         type: Sequelize.STRING,
-        allowNull: false,
       },
       availability: {
         type: Sequelize.BOOLEAN,
@@ -31,12 +30,11 @@ module.exports = (sequelize, Sequelize) => {
       },
     },
     {
-      indexes: [
-        {
-          unique: true,
-          fields: ["ASIN", "Locale"],
+      uniqueKeys: {
+        product_unique: {
+          fields: ["asin", "locale"],
         },
-      ],
+      },
     }
   );
 

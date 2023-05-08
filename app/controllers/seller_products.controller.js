@@ -1,6 +1,8 @@
 const { SellerProduct } = require("../../db_init");
 const { Op, fn, col } = require("sequelize");
 const { StatusCodes } = require("express-http-status");
+const { createReadStream } = require("fs");
+const csv = require("csv-parser");
 
 const LIMIT = 25;
 
@@ -15,10 +17,10 @@ module.exports.create = async (req, res) => {
 };
 
 module.exports.read = async (req, res) => {
-  const { ASIN, Locale, page } = req.query;
+  const { asin, locale, page } = req.query;
   const _page = parseInt(page || "0");
 
-  const query = { where: { [Op.and]: [{ ASIN, Locale }] } };
+  const query = { where: { [Op.and]: [{ asin, locale }] } };
   const { count, rows } = await SellerProduct.findAndCountAll({
     ...query,
     offset: _page,
@@ -29,8 +31,8 @@ module.exports.read = async (req, res) => {
 };
 
 module.exports.update = async (req, res) => {
-  const { ASIN, Locale } = req.query;
-  const findQuery = { where: { [Op.and]: [{ ASIN, Locale }] } };
+  const { asin, locale } = req.query;
+  const findQuery = { where: { [Op.and]: [{ asin, locale }] } };
   SellerProduct.update(req.body, findQuery)
     .then((count) => res.status(StatusCodes.OK).send({ count }))
     .catch((err) =>
@@ -39,8 +41,8 @@ module.exports.update = async (req, res) => {
 };
 
 module.exports.delete = async (req, res) => {
-  const { ASIN, Locale } = req.query;
-  const query = { where: { [Op.and]: [{ ASIN, Locale }] } };
+  const { asin, locale } = req.query;
+  const query = { where: { [Op.and]: [{ asin, locale }] } };
   SellerProduct.destroy(query)
     .then((count) => res.status(StatusCodes.OK).send({ count }))
     .catch((err) =>
@@ -64,7 +66,7 @@ module.exports.readBySeller = async (req, res) => {
 
 function _findData(_fn, _col, outRowName, where) {
   return SellerProduct.findAll({
-    attributes: ["seller_name", "Locale", [fn(_fn, col(_col)), outRowName]],
+    attributes: ["seller_name", "locale", [fn(_fn, col(_col)), outRowName]],
     where,
     group: ["seller_name", "locale"],
     raw: true,
@@ -72,7 +74,7 @@ function _findData(_fn, _col, outRowName, where) {
 }
 
 module.exports.getAnalysis = async (req, res) => {
-  const [availableProducts, unavailableProducts, avgPricePerSellerLocale] =
+  const [availableProducts, unavailableProducts, avgPricePerSellerlocale] =
     await Promise.all([
       _findData("COUNT", "availability", "available_products", {
         availability: true,
@@ -84,25 +86,53 @@ module.exports.getAnalysis = async (req, res) => {
     ]);
   const returnData = [];
 
-  for (const sellerLocale of avgPricePerSellerLocale) {
-    const { seller_name, Locale, average_price } = sellerLocale;
+  for (const sellerlocale of avgPricePerSellerlocale) {
+    const { seller_name, locale, average_price } = sellerlocale;
     const { available_products } =
       availableProducts.find(
         (sellerLo) =>
-          sellerLo.seller_name === seller_name && sellerLo.Locale === Locale
+          sellerLo.seller_name === seller_name && sellerLo.locale === locale
       ) || 0;
     const { unavailable_products } =
       unavailableProducts.find(
         (sellerLo) =>
-          sellerLo.seller_name === seller_name && sellerLo.Locale === Locale
+          sellerLo.seller_name === seller_name && sellerLo.locale === locale
       ) || 0;
     returnData.push({
       seller_name,
-      Locale,
+      locale,
       available_products,
       unavailable_products,
       average_price,
     });
   }
   return res.send(returnData);
+};
+
+module.exports.csvHandle = async (req, res) => {
+  const { file_path } = req.body;
+  const results = [];
+  try {
+    createReadStream(file_path)
+      .pipe(csv())
+      .on("data", (data) => {
+        results.push(data);
+      })
+      .on("end", () => {
+        SellerProduct.bulkCreate(results, {
+          fields: ["asin", "locale"],
+          updateOnDuplicate: [
+            "seller_name",
+            "availability",
+            "price",
+            "product_name",
+            "product_link",
+          ],
+        }).then()
+        .catch(err=>console.error(err));
+      });
+  } catch (error) {
+    console.error(error);
+  }
+  return res.sendStatus(StatusCodes.ACCEPTED);
 };

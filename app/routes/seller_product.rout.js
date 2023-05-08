@@ -28,6 +28,10 @@ SellerProductRoute.get(
 );
 
 SellerProductRoute.get("/getAnalysis", SellerProductController.getAnalysis);
+
+// local path can be /home/use/file.csv in get we can't do it so i need to do it via put and insert the path to the body
+SellerProductRoute.put("/upload", SellerProductController.csvHandle);
+
 // to align the reqirements i sparete the api, basically I use the same path name and different http request
 // example -> / with delete will delete, / with get will read, / with post will create
 module.exports = SellerProductRoute;
