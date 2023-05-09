@@ -2,7 +2,8 @@
 
 # How to use?
 * npm install
-* npm start
+* npm start for node
+* npm start:dev for nodemon
 
 the database will automatically create (sqlite3)
 

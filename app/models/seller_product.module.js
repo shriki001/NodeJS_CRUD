@@ -9,6 +9,7 @@ module.exports = (sequelize, Sequelize) => {
       },
       locale: {
         type: Sequelize.STRING,
+        primaryKey: true,
         allowNull: false,
       },
       seller_name: {
@@ -30,11 +31,12 @@ module.exports = (sequelize, Sequelize) => {
       },
     },
     {
-      uniqueKeys: {
-        product_unique: {
+      indexes: [
+        {
+          unique: true,
           fields: ["asin", "locale"],
         },
-      },
+      ],
     }
   );
 

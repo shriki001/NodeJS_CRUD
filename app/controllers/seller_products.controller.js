@@ -1,19 +1,18 @@
 const { SellerProduct } = require("../../db_init");
 const { Op, fn, col } = require("sequelize");
 const { StatusCodes } = require("express-http-status");
-const { createReadStream } = require("fs");
+const { createReadStream, existsSync } = require("fs");
 const csv = require("csv-parser");
 
 const LIMIT = 25;
 
 module.exports.create = async (req, res) => {
-  SellerProduct.create(req.body)
-    .then((_) => {
-      return res.send("product created!");
-    })
-    .catch((error) => {
-      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(error.message);
-    });
+  try {
+    await SellerProduct.create(req.body);
+    return res.status(StatusCodes.OK);
+  } catch (error) {
+    return res.status(StatusCodes.BAD_REQUEST).send(error.message);
+  }
 };
 
 module.exports.read = async (req, res) => {
@@ -33,21 +32,23 @@ module.exports.read = async (req, res) => {
 module.exports.update = async (req, res) => {
   const { asin, locale } = req.query;
   const findQuery = { where: { [Op.and]: [{ asin, locale }] } };
-  SellerProduct.update(req.body, findQuery)
-    .then((count) => res.status(StatusCodes.OK).send({ count }))
-    .catch((err) =>
-      res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(err.message)
-    );
+  try {
+    await SellerProduct.update(req.body, findQuery);
+    return res.sendStatus(StatusCodes.OK);
+  } catch (error) {
+    return res.status(StatusCodes.BAD_REQUEST).send(error.message);
+  }
 };
 
 module.exports.delete = async (req, res) => {
   const { asin, locale } = req.query;
   const query = { where: { [Op.and]: [{ asin, locale }] } };
-  SellerProduct.destroy(query)
-    .then((count) => res.status(StatusCodes.OK).send({ count }))
-    .catch((err) =>
-      res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(err.message)
-    );
+  try {
+    await SellerProduct.destroy(query);
+    return res.sendStatus(StatusCodes.OK);
+  } catch (error) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(error.message);
+  }
 };
 
 module.exports.readBySeller = async (req, res) => {
@@ -74,16 +75,20 @@ function _findData(_fn, _col, outRowName, where) {
 }
 
 module.exports.getAnalysis = async (req, res) => {
+  const COUNT = "COUNT",
+    AVG = "AVG",
+    availability = "availability";
   const [availableProducts, unavailableProducts, avgPricePerSellerlocale] =
     await Promise.all([
-      _findData("COUNT", "availability", "available_products", {
+      _findData(COUNT, availability, "available_products", {
         availability: true,
       }),
-      _findData("COUNT", "availability", "unavailable_products", {
+      _findData(COUNT, availability, "unavailable_products", {
         availability: false,
       }),
-      _findData("AVG", "price", "average_price"),
+      _findData(AVG, "price", "average_price"),
     ]);
+
   const returnData = [];
 
   for (const sellerlocale of avgPricePerSellerlocale) {
@@ -112,6 +117,9 @@ module.exports.getAnalysis = async (req, res) => {
 module.exports.csvHandle = async (req, res) => {
   const { file_path } = req.body;
   const results = [];
+  if (!existsSync(file_path)) {
+    return res.sendStatus(StatusCodes.NOT_FOUND);
+  }
   try {
     createReadStream(file_path)
       .pipe(csv())
@@ -127,11 +135,10 @@ module.exports.csvHandle = async (req, res) => {
             "product_name",
             "product_link",
           ],
-        })
-        .catch(err=>console.error(err));
+        }).catch((err) => console.error(err));
       });
   } catch (error) {
     console.error(error);
   }
-  return res.sendStatus(StatusCodes.ACCEPTED);
+  return res.sendStatus(StatusCodes.ACCEPTED); // we return accepted to client because the csv read can take a while
 };
